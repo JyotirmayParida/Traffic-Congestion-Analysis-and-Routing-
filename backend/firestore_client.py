@@ -27,9 +27,20 @@ try:
     from firebase_admin import credentials, firestore  # type: ignore
     from google.api_core.exceptions import GoogleAPIError  # type: ignore
 
-    _cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "./serviceAccountKey.json")
+    import json
+
+    _cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    _cred_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
+
     if not firebase_admin._apps:
-        cred = credentials.Certificate(_cred_path)
+        if _cred_json:
+            # Cloud deployment — credentials passed as JSON string
+            cred = credentials.Certificate(json.loads(_cred_json))
+        elif _cred_path:
+            # Local development — credentials loaded from file path
+            cred = credentials.Certificate(_cred_path)
+        else:
+            raise ValueError("No Firebase credentials found. Set either GOOGLE_APPLICATION_CREDENTIALS or FIREBASE_CREDENTIALS_JSON.")
         firebase_admin.initialize_app(cred)
     _db = firestore.client()
     _SERVER_TIMESTAMP = firestore.SERVER_TIMESTAMP
